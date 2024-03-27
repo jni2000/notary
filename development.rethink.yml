@@ -12,7 +12,7 @@ services:
         - rdb-proxy:rdb-proxy.rdb
         - signer
       ports:
-        - "8080"
+        - "8282"
         - "4443:4443"
       entrypoint: /usr/bin/env sh
       command: -c "sh migrations/rethink_migrate.sh && notary-server -config=fixtures/server-config.rethink.json"
@@ -73,7 +73,7 @@ services:
     rdb-proxy:
       image: jlhawn/rethinkdb:2.3.4
       ports:
-        - "8080:8080"
+        - "8282:8282"
       volumes:
         - ./fixtures/rethinkdb:/tls
       networks:

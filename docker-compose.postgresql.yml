@@ -8,7 +8,7 @@ services:
       - mdb
       - sig
     ports:
-      - "8080"
+      - "8282"
       - "4443:4443"
     entrypoint: /usr/bin/env sh
     command: -c "./migrations/migrate.sh && notary-server -config=fixtures/server-config.postgres.json"

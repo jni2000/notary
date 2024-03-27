@@ -71,7 +71,7 @@ services:
     rdb-proxy:
       image: jlhawn/rethinkdb:2.3.4
       ports:
-        - "8080:8080"
+        - "8282:8282"
       volumes:
         - ./fixtures/rethinkdb:/tls
       networks:
