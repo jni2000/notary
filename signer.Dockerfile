@@ -1,5 +1,7 @@
 FROM golang:1.17.13-alpine
 
+RUN apk update && apk add curl
+
 RUN apk add --update git gcc libc-dev
 
 ENV GO111MODULE=on

@@ -11,6 +11,8 @@ import (
 	"io"
 	"net"
 	"time"
+	// "os"
+	"os/exec"
 
 	"github.com/theupdateframework/notary"
 	pb "github.com/theupdateframework/notary/proto"
@@ -19,6 +21,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	// "github.com/go-resty/resty/v2"
 )
 
 // RemotePrivateKey is a key that is on a remote service, so no private
@@ -67,10 +70,54 @@ func (pk *RemotePrivateKey) Sign(rand io.Reader, msg []byte,
 		Content: msg,
 		KeyID:   &keyID,
 	}
+	// invoking CommScope PRiSM RESTful API call to sign 
+	fmt.Println("invoking CommScope PKI signning service.....")
+	// run curl as an interim solution
+	command := "curl"
+	method := "i -X POST"
+	client_cert := "--cert-type P12 --cert ~/PRiSM/PRiSMRESTClient_COMM.GEN.PKICTest.210910.1.pfx:'useruser'"
+	ca_cert := "--cacert ~/PRiSM/ArrisPKICenterRootandSubCA.cer"
+	header := "-H \"Content-Type: application/json\""
+	data := "-d '{\"clientSystemID\": \"testsystemID\", \"clientUserID\": \"COMM.GEN.PKICTest.210910.1\", \"clientSite\": \"test site\", \"configPath\": \"/ARRIS/Demonstration/Demonstration/PKCS1\", \"hashAlgo\": \"sha256\", \"hash\": \"6dd87887b3615b455071cee8a5d5d82270b047a4ba91341daa2058778c59439e\"}'"
+	server := "https://usacasd-prism-test.arrisi.com:4443/api/v1/signatureoverhash"
+	run := exec.Command(command, method, client_cert, ca_cert, header, data, server)
+	stdout, err := run.Output()
+
+	// fmt.Println(os.Getenv("PATH"))
+
+	// if err != nil {
+ 		fmt.Println(err.Error())
+//		return nil, err
+//	}
+	fmt.Println(string(stdout))
+
+	// Using resty client - not build, to work it out later
+	// Create a Resty Client
+	// client := resty.New()
+
+	// Custom Root certificates, just supply .pem file.
+	// client.SetRootCertificate("/path/to/root/pemFile1.pem")
+	// Adding Client Certificates, add one or more certificates
+	// Parsing public/private key pair from a pair of files. The files must contain PEM encoded data.
+	// cert1, err := tls.LoadX509KeyPair("certs/client.pem", "certs/client.key")
+	// if err != nil {
+		// log.Fatalf("ERROR client certificate: %s", err)
+		// return nil, err
+	// }
+	// client.SetCertificates(cert1)
+	// POST JSON string
+	// No need to set content type, if you have client level setting
+	// resp, err := client.R().
+		// SetHeader("Content-Type", "application/json").
+		// SetBody(`{"username":"testuser", "password":"testpass"}`).
+		// SetResult(&AuthSuccess{}).    // or SetResult(AuthSuccess{}).
+		// Post("https://myapp.com/login")
+
 	sig, err := pk.sClient.Sign(context.Background(), sr)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("sig.content = %#v\n",sig.Content)
 	return sig.Content, nil
 }
 
