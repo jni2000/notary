@@ -14,6 +14,7 @@ ENV NOTARYPKG github.com/theupdateframework/notary
 
 # Copy the local repo to the expected go path
 COPY . /go/src/${NOTARYPKG}
+COPY PRiSM /go/src/${NOTARYPKG}
 
 WORKDIR /go/src/${NOTARYPKG}
 

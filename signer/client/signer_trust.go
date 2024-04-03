@@ -11,7 +11,7 @@ import (
 	"io"
 	"net"
 	"time"
-	// "os"
+	"os"
 	"os/exec"
 
 	"github.com/theupdateframework/notary"
@@ -72,23 +72,36 @@ func (pk *RemotePrivateKey) Sign(rand io.Reader, msg []byte,
 	}
 	// invoking CommScope PRiSM RESTful API call to sign 
 	fmt.Println("invoking CommScope PKI signning service.....")
+
+	// locate the current working directory
+	directory , err := os.Getwd() 
+	if err != nil {
+		fmt.Println(err) //print the error if obtained
+	}
+	fmt.Println("Current working directory:", directory) //print the required directory
+
 	// run curl as an interim solution
-	command := "curl"
-	method := "i -X POST"
-	client_cert := "--cert-type P12 --cert ~/PRiSM/PRiSMRESTClient_COMM.GEN.PKICTest.210910.1.pfx:'useruser'"
-	ca_cert := "--cacert ~/PRiSM/ArrisPKICenterRootandSubCA.cer"
-	header := "-H \"Content-Type: application/json\""
-	data := "-d '{\"clientSystemID\": \"testsystemID\", \"clientUserID\": \"COMM.GEN.PKICTest.210910.1\", \"clientSite\": \"test site\", \"configPath\": \"/ARRIS/Demonstration/Demonstration/PKCS1\", \"hashAlgo\": \"sha256\", \"hash\": \"6dd87887b3615b455071cee8a5d5d82270b047a4ba91341daa2058778c59439e\"}'"
-	server := "https://usacasd-prism-test.arrisi.com:4443/api/v1/signatureoverhash"
-	run := exec.Command(command, method, client_cert, ca_cert, header, data, server)
+	command := "curl -i -X POST --cert-type P12 --cert PRiSM/PRiSMRESTClient_COMM.GEN.PKICTest.210910.1.pfx:'useruser' --cacert PRiSM/ArrisPKICenterRootandSubCA.cer -H \"Content-Type: application/json\" -d '{\"clientSystemID\": \"testsystemID\", \"clientUserID\": \"COMM.GEN.PKICTest.210910.1\", \"clientSite\": \"test site\", \"configPath\": \"/ARRIS/Demonstration/Demonstration/PKCS1\", \"hashAlgo\": \"sha256\", \"hash\": \"6dd87887b3615b455071cee8a5d5d82270b047a4ba91341daa2058778c59439e\"}' https://usacasd-prism-test.arrisi.com:4443/api/v1/signatureoverhash"
+
+	fmt.Println(command)
+
+	// method := "-i -X POST"
+	// client_cert := "--cert-type P12 --cert PRiSM/PRiSMRESTClient_COMM.GEN.PKICTest.210910.1.pfx:'useruser'"
+	// ca_cert := "--cacert PRiSM/ArrisPKICenterRootandSubCA.cer"
+	// header := "-H \"Content-Type: application/json\""
+	// data := "-d '{\"clientSystemID\": \"testsystemID\", \"clientUserID\": \"COMM.GEN.PKICTest.210910.1\", \"clientSite\": \"test site\", \"configPath\": \"/ARRIS/Demonstration/Demonstration/PKCS1\", \"hashAlgo\": \"sha256\", \"hash\": \"6dd87887b3615b455071cee8a5d5d82270b047a4ba91341daa2058778c59439e\"}'"
+	// server := "https://usacasd-prism-test.arrisi.com:4443/api/v1/signatureoverhash"
+	// run := exec.Command(command, method, client_cert, ca_cert, header, data, server)
+	run := exec.Command(command)
+
 	stdout, err := run.Output()
 
 	// fmt.Println(os.Getenv("PATH"))
 
-	// if err != nil {
+	if err != nil {
  		fmt.Println(err.Error())
-//		return nil, err
-//	}
+		return nil, err
+	}
 	fmt.Println(string(stdout))
 
 	// Using resty client - not build, to work it out later
