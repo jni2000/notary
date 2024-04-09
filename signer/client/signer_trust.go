@@ -17,7 +17,7 @@ import (
 	"log"
         "encoding/json"
 	"encoding/hex"
-	// "strings"
+	"strings"
 
 	"github.com/theupdateframework/notary"
 	pb "github.com/theupdateframework/notary/proto"
@@ -164,8 +164,7 @@ func (pk *RemotePrivateKey) Sign(rand io.Reader, msg []byte,
         <- done
         err = cmd.Wait()
 	// fmt.Println("signature is:", cmd_ret)
-        signRec.Signature = cmd_ret
-	fmt.Println(cmd_ret)
+        signRec.Signature = strings.Replace(cmd_ret, "\"", "", -1)
 
 	//
 	// Using resty client - not build, to work it out later
@@ -222,7 +221,11 @@ func (pk *RemotePrivateKey) Sign(rand io.Reader, msg []byte,
         if err3 != nil {
             log.Fatal(err3)
         }
-        fmt.Println("singRec is:", string(signJson))
+	signString := string(signJson)
+	signString = strings.Replace(signString, "\"{", "{", 1)
+	signString = strings.Replace(signString, "}\"", "}", 1)
+	signString = strings.Replace(signString, "\\\"", "\"", -1)
+        fmt.Println("singRec is:", signString)
 	return sig.Content, nil
 }
 
