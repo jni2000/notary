@@ -7,6 +7,8 @@ services:
     networks:
       - mdb
       - sig
+    volumes:
+      - /tmp:/tmp
     ports:
       - "8282"
       - "4443:4443"
@@ -24,6 +26,8 @@ services:
       sig:
         aliases:
           - notarysigner
+    volumes:
+      - /tmp:/tmp
     entrypoint: /usr/bin/env sh
     command: -c "./migrations/migrate.sh && notary-signer -config=fixtures/signer-config.json"
     depends_on:

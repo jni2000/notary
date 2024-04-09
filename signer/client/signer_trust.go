@@ -11,7 +11,7 @@ import (
 	"io"
 	"net"
 	"time"
-	// "os"
+	"os"
 	"os/exec"
         "bufio"
 	"log"
@@ -77,6 +77,12 @@ func NewRemotePrivateKey(pubKey data.PublicKey, sClient pb.SignerClient) *Remote
 // Private returns nil bytes
 func (pk *RemotePrivateKey) Private() []byte {
 	return nil
+}
+
+func check(e error) {
+    if e != nil {
+        panic(e)
+    }
 }
 
 func getMacAddr() ([]string, error) {
@@ -226,6 +232,10 @@ func (pk *RemotePrivateKey) Sign(rand io.Reader, msg []byte,
 	signString = strings.Replace(signString, "}\"", "}", 1)
 	signString = strings.Replace(signString, "\\\"", "\"", -1)
         fmt.Println("singRec is:", signString)
+	filename := "/tmp/" + pk.ID() + ".log"
+	fmt.Println("write to file: ", filename)
+	err = os.WriteFile(filename, []byte(signString), 0644)
+	check(err)
 	return sig.Content, nil
 }
 
