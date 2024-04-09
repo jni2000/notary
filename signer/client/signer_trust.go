@@ -11,9 +11,13 @@ import (
 	"io"
 	"net"
 	"time"
-	"os"
+	// "os"
 	"os/exec"
         "bufio"
+	"log"
+        "encoding/json"
+	"encoding/hex"
+	// "strings"
 
 	"github.com/theupdateframework/notary"
 	pb "github.com/theupdateframework/notary/proto"
@@ -36,6 +40,19 @@ type RemotePrivateKey struct {
 // interface
 type RemoteSigner struct {
 	RemotePrivateKey
+}
+
+// CommScope signed signing log
+type CommScopeSigningLog struct {
+	Title string
+	IpAddr []string	
+	MacAddr []string
+	TimeStamp string
+	NotaryKeyId string
+	Subject string
+	CsKeyId string
+	CsCaId	string
+	Signature string
 }
 
 // Public method of a crypto.Signer needs to return a crypto public key.
@@ -62,6 +79,21 @@ func (pk *RemotePrivateKey) Private() []byte {
 	return nil
 }
 
+func getMacAddr() ([]string, error) {
+     ifas, err := net.Interfaces()
+     if err != nil {
+         return nil, err
+     }
+     var as []string
+     for _, ifa := range ifas {
+         a := ifa.HardwareAddr.String()
+         if a != "" {
+             as = append(as, a)
+         }
+     }
+     return as, nil
+}
+
 // Sign calls a remote service to sign a message.
 func (pk *RemotePrivateKey) Sign(rand io.Reader, msg []byte,
 	opts crypto.SignerOpts) ([]byte, error) {
@@ -71,31 +103,51 @@ func (pk *RemotePrivateKey) Sign(rand io.Reader, msg []byte,
 		Content: msg,
 		KeyID:   &keyID,
 	}
+
+        sig, err := pk.sClient.Sign(context.Background(), sr)
+        if err != nil {
+                return nil, err
+        }
+
 	// invoking CommScope PRiSM RESTful API call to sign 
+	signRec := CommScopeSigningLog{Title: "CommScope signature attestation record"}
+
 	fmt.Println("invoking CommScope PKI signning service.....")
+	signRec.Subject = string(msg)
 
 	// locate the current working directory
-	directory , err := os.Getwd() 
-	if err != nil {
-		fmt.Println(err) //print the error if obtained
-	}
-	fmt.Println("Current working directory:", directory) //print the required directory
+	// directory , err0 := os.Getwd() 
+	// if err0 != nil {
+	//	fmt.Println(err0) //print the error if obtained
+	// }
+	// fmt.Println("Current working directory:", directory) //print the required directory
 	
 	//
 	// run curl as an interim solution
 	//
-	if _, err = os.Stat("PRiSM/PRiSMRESTClient_COMM.GEN.PKICTest.210910.1-2.pfx"); err == nil {
-		fmt.Println("file PRiSM/PRiSMRESTClient_COMM.GEN.PKICTest.210910.1-2.pfx found")
-	} else {
-		fmt.Println("file PRiSM/PRiSMRESTClient_COMM.GEN.PKICTest.210910.1-2.pfx NOT found")
-	}
-	if _, err = os.Stat("PRiSM/ArrisPKICenterRootandSubCA.cer"); err == nil {
-                fmt.Println("file  PRiSM/ArrisPKICenterRootandSubCA.cer found")
-        } else {
-                fmt.Println("PRiSM/ArrisPKICenterRootandSubCA.cer NOT found")
-        }
+	// if _, err = os.Stat("PRiSM/PRiSMRESTClient_COMM.GEN.PKICTest.210910.1-2.pfx"); err == nil {
+	//	fmt.Println("file PRiSM/PRiSMRESTClient_COMM.GEN.PKICTest.210910.1-2.pfx found")
+	// } else {
+	//	fmt.Println("file PRiSM/PRiSMRESTClient_COMM.GEN.PKICTest.210910.1-2.pfx NOT found")
+	// }
+	// if _, err = os.Stat("PRiSM/ArrisPKICenterRootandSubCA.cer"); err == nil {
+        //	fmt.Println("file  PRiSM/ArrisPKICenterRootandSubCA.cer found")
+        // } else {
+        //	fmt.Println("PRiSM/ArrisPKICenterRootandSubCA.cer NOT found")
+        // }
+	signRec.CsKeyId = "PRiSMRESTClient_COMM.GEN.PKICTest.210910.1"
+	signRec.CsCaId ="ArrisPKICenterRootandSubCA"
 
-	payload := `{"clientSystemID":"testsystemID","clientUserID":"COMM.GEN.PKICTest.210910.1","clientSite":"test site","configPath":"/ARRIS/Demonstration/Demonstration/PKCS1","hashAlgo":"sha256","hash":"6dd87887b3615b455071cee8a5d5d82270b047a4ba91341daa2058778c59439e"}`
+	// payload := `{"clientSystemID":"testsystemID","clientUserID":"COMM.GEN.PKICTest.210910.1","clientSite":"test site","configPath":"/ARRIS/Demonstration/Demonstration/PKCS1","hashAlgo":"sha256","hash":"6dd87887b3615b455071cee8a5d5d82270b047a4ba91341daa2058778c59439e"}`
+	payload1 := `{"clientSystemID":"testsystemID","clientUserID":"COMM.GEN.PKICTest.210910.1","clientSite":"test site","configPath":"/ARRIS/Demonstration/Demonstration/PKCS1","hashAlgo":"sha256","hash":"`
+	// payload2 := `6dd87887b3615b455071cee8a5d5d82270b047a4ba91341daa2058778c59439e`
+	payload2 := hex.EncodeToString(sig.Content)[:64]
+	payload3 := `"}`
+	payload := payload1+payload2+payload3
+	// fmt.Println(sig.Content, ":", payload2)
+
+	// fmt.Println(payload)
+
 	cmd := exec.Command("curl", "-X", "POST", "--cert-type", "P12", "--cert", "PRiSM/PRiSMRESTClient_COMM.GEN.PKICTest.210910.1-2.pfx", "--cacert", "PRiSM/ArrisPKICenterRootandSubCA.cer", "-H", "Content-Type: application/json", "-d", payload, "https://usacasd-prism-test.arrisi.com:4443/api/v1/signatureoverhash")
         stdout, _ := cmd.StdoutPipe()
         scanner := bufio.NewScanner(stdout)
@@ -111,7 +163,9 @@ func (pk *RemotePrivateKey) Sign(rand io.Reader, msg []byte,
         cmd.Start()
         <- done
         err = cmd.Wait()
-	fmt.Println("signature is:", cmd_ret)
+	// fmt.Println("signature is:", cmd_ret)
+        signRec.Signature = cmd_ret
+	fmt.Println(cmd_ret)
 
 	//
 	// Using resty client - not build, to work it out later
@@ -136,10 +190,39 @@ func (pk *RemotePrivateKey) Sign(rand io.Reader, msg []byte,
 		// SetResult(&AuthSuccess{}).    // or SetResult(AuthSuccess{}).
 		// Post("https://myapp.com/login")
 
-	sig, err := pk.sClient.Sign(context.Background(), sr)
-	if err != nil {
-		return nil, err
-	}
+        // signing log
+        addrs, err1 := net.InterfaceAddrs()
+        if err1 != nil {
+            panic(err1)
+        }
+        for _, addr := range addrs {
+            ipNet, ok := addr.(*net.IPNet)
+            if ok && !ipNet.IP.IsLoopback() && ipNet.IP.To4() != nil {
+        //        fmt.Println(ipNet.IP)
+	        signRec.IpAddr = append(signRec.IpAddr, ipNet.IP.String())
+            }
+        }
+        as, err2 := getMacAddr()
+        if err2 != nil {
+            log.Fatal(err2)
+        }
+        for _, a := range as {
+        //     fmt.Println(a)
+	    signRec.MacAddr = append(signRec.MacAddr, string(a))
+        }
+        currentTime := time.Now()
+        // fmt.Println(currentTime.String())
+        signRec.TimeStamp = currentTime.String()
+        // fmt.Println("Notary signing key ID:", pk.ID())
+	signRec.NotaryKeyId = pk.ID()
+
+	// fmt.Println(signRec)
+
+        signJson, err3 := json.Marshal(&signRec)
+        if err3 != nil {
+            log.Fatal(err3)
+        }
+        fmt.Println("singRec is:", string(signJson))
 	return sig.Content, nil
 }
 
