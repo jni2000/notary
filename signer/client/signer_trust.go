@@ -49,7 +49,7 @@ type CommScopeSigningLog struct {
 	MacAddr []string
 	TimeStamp string
 	NotaryKeyId string
-	NotarySignature string
+	NotaryContent string
 	Subject string
 	CsKeyId string
 	CsCaId	string
@@ -121,7 +121,7 @@ func (pk *RemotePrivateKey) Sign(rand io.Reader, msg []byte,
 
 	fmt.Println("invoking CommScope PKI signning service.....")
 	signRec.Subject = string(msg)
-	signRec.NotarySignature = hex.EncodeToString(sig.Content)
+	signRec.NotaryContent = hex.EncodeToString(sig.Content)
 
 	// locate the current working directory
 	// directory , err0 := os.Getwd() 
