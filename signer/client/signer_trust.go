@@ -156,7 +156,7 @@ func (pk *RemotePrivateKey) Sign(rand io.Reader, msg []byte,
 
 	// fmt.Println(payload)
 
-	cmd := exec.Command("curl", "-X", "POST", "--cert-type", "P12", "--cert", "PRiSM/PRiSMRESTClient_COMM.GEN.PKICTest.210910.1-2.pfx", "--cacert", "PRiSM/ArrisPKICenterRootandSubCA.cer", "-H", "Content-Type: application/json", "-d", payload, "https://usacasd-prism-test.arrisi.com:4443/api/v1/signatureoverhash")
+	cmd := exec.Command("curl", "-X", "POST", "--cert-type", "P12", "--cert", "PRiSM/PRiSMRESTClient_COMM.GEN.PKICTest.210910.1-2.pfx", "--cacert", "PRiSM/ArrisPKICenterRootandSubCA.cer", "-H", "Content-Type: application/json", "-d", payload, "https://iPRiSM.staging.pki-center.com:4443/api/v1/signatureoverhash")
         stdout, _ := cmd.StdoutPipe()
         scanner := bufio.NewScanner(stdout)
         done := make(chan bool)
